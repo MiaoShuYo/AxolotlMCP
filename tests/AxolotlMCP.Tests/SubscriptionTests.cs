@@ -18,6 +18,9 @@ namespace AxolotlMCP.Tests;
 /// </summary>
 public class SubscriptionTests
 {
+    /// <summary>
+    /// 订阅 resources 后，注册资源应触发 resources/changed 通知。
+    /// </summary>
     [Fact]
     public async Task Subscribe_Then_Change_Raises_Notification()
     {
