@@ -4,8 +4,8 @@ using AxolotlMCP.Core.Protocol.Message;
 using AxolotlMCP.Core.Transport;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
-using System.Diagnostics;
 using AxolotlMCP.Core.Observability;
+using System.Diagnostics;
 
 namespace AxolotlMCP.Server;
 
@@ -17,6 +17,7 @@ public sealed class McpServer
 {
     private readonly ITransport _transport;
     private readonly IMcpHandler _handler;
+    private readonly Middleware.RequestMiddlewarePipeline _pipeline;
     private readonly ILogger<McpServer> _logger;
     private CancellationTokenSource? _cts;
     private Task? _readLoopTask;
@@ -27,11 +28,13 @@ public sealed class McpServer
     /// <param name="transport">底层传输实现（如 StdioTransport）</param>
     /// <param name="handler">消息处理器（路由的目标）</param>
     /// <param name="logger">日志记录器</param>
-    public McpServer(ITransport transport, IMcpHandler handler, ILogger<McpServer> logger)
+    /// <param name="pipeline">请求中间件管道</param>
+    public McpServer(ITransport transport, IMcpHandler handler, ILogger<McpServer> logger, Middleware.RequestMiddlewarePipeline pipeline)
     {
         _transport = transport;
         _handler = handler;
         _logger = logger;
+        _pipeline = pipeline;
     }
 
     /// <summary>
@@ -93,7 +96,14 @@ public sealed class McpServer
                         var started = Stopwatch.GetTimestamp();
                         var request = JsonSerializer.Deserialize<RequestMessage>(line, JsonDefaults.Options);
                         if (request is null) continue;
-                        var response = await _handler.HandleRequestAsync(request, cancellationToken).ConfigureAwait(false);
+                        using var activity = McpTracing.Source.StartActivity("mcp.request", ActivityKind.Server);
+                        activity?.SetTag("mcp.method", request.Method);
+                        activity?.SetTag("mcp.request.id", request.Id);
+                        var response = await _pipeline.ExecuteAsync(
+                            request,
+                            cancellationToken,
+                            (req, ct) => _handler.HandleRequestAsync(req, ct)
+                        ).ConfigureAwait(false);
                         var json = JsonSerializer.Serialize(response, JsonDefaults.Options);
                         await _transport.SendAsync(json, cancellationToken).ConfigureAwait(false);
                         McpMetrics.RequestsReceived.Add(1);

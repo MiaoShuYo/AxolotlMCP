@@ -6,6 +6,8 @@ using AxolotlMCP.Core.Tools;
 using Microsoft.Extensions.Logging;
 using AxolotlMCP.Core.Resources;
 using AxolotlMCP.Core.Prompts;
+using AxolotlMCP.Core.Observability;
+using System.Diagnostics;
 
 namespace AxolotlMCP.Server;
 
@@ -112,6 +114,7 @@ public sealed class DefaultHandler : IMcpHandler
 
     private Task<ResponseMessage> HandleToolsListAsync(RequestMessage request, CancellationToken ct)
     {
+        using var act = McpTracing.Source.StartActivity("mcp.tools.list", ActivityKind.Internal);
         var items = _tools.GetAll().Select(t => new McpTool
         {
             Name = t.Name,
@@ -185,22 +188,37 @@ public sealed class DefaultHandler : IMcpHandler
 
     private async Task<ResponseMessage> HandleToolsCallAsync(RequestMessage request, CancellationToken ct)
     {
+        using var act = McpTracing.Source.StartActivity("mcp.tools.call", ActivityKind.Internal);
         if (request.Params is not JsonElement p) return InvalidParams(request.Id);
         if (!p.TryGetProperty("name", out var nameEl) || nameEl.ValueKind != JsonValueKind.String) return InvalidParams(request.Id);
         var name = nameEl.GetString()!;
+        act?.SetTag("tool.name", name);
         if (!_tools.TryGet(name, out var tool) || tool is null)
         {
+            act?.SetTag("tool.found", false);
             return new ResponseMessage
             {
                 Id = request.Id,
                 Error = new McpError { Code = -32601, Message = $"工具不存在: {name}" }
             };
         }
+        act?.SetTag("tool.found", true);
 
         JsonElement args = default;
         if (p.TryGetProperty("arguments", out var argsEl)) args = argsEl;
-        var result = await tool.ExecuteAsync(args, ct).ConfigureAwait(false);
-        return new ResponseMessage { Id = request.Id, Result = result };
+        try
+        {
+            var result = await tool.ExecuteAsync(args, ct).ConfigureAwait(false);
+            act?.SetTag("tool.success", true);
+            return new ResponseMessage { Id = request.Id, Result = result };
+        }
+        catch (Exception ex)
+        {
+            act?.SetTag("tool.success", false);
+            act?.SetTag("exception.type", ex.GetType().FullName);
+            act?.SetTag("exception.message", ex.Message);
+            throw;
+        }
     }
 
     private static ResponseMessage InvalidParams(string id) => new()
