@@ -18,6 +18,8 @@ public static class ServiceCollectionExtensions
     {
         services.AddOptions<ServerOptions>().Bind(configuration.GetSection("Mcp:Server")).ValidateDataAnnotations();
         services.AddOptions<RateLimitOptions>().Bind(configuration.GetSection("Mcp:RateLimit")).ValidateDataAnnotations();
+        services.AddOptions<SecurityOptions>().Bind(configuration.GetSection("Mcp:Security")).ValidateDataAnnotations();
+        services.AddOptions<ToolSandboxOptions>().Bind(configuration.GetSection("Mcp:ToolSandbox")).ValidateDataAnnotations();
 
         services.AddSingleton<ToolRegistry>();
         services.AddSingleton<AxolotlMCP.Core.Resources.ResourceRegistry>();
@@ -58,6 +60,9 @@ public static class ServiceCollectionExtensions
             return new Middleware.RateLimitMiddleware(opts.PermitLimit);
         });
         services.AddSingleton<IRequestMiddleware, Middleware.TimingMiddleware>();
+        services.AddSingleton<IRequestMiddleware, Middleware.ApiKeyAuthMiddleware>();
+        services.AddSingleton<IRequestMiddleware, Middleware.TimeoutMiddleware>();
+        services.AddSingleton<IRequestMiddleware, Middleware.ToolSandboxMiddleware>();
         return services;
     }
 }
