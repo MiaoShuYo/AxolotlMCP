@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\AxolotlMCP.Core\AxolotlMCP.Core.csproj" />
+    <ProjectReference Include="..\..\src\AxolotlMCP.Server\AxolotlMCP.Server.csproj" />
+    <ProjectReference Include="..\..\src\AxolotlMCP.Client\AxolotlMCP.Client.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.13.10" />
+  </ItemGroup>
+
+</Project>

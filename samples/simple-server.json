@@ -1,0 +1,41 @@
+{
+  "server": {
+    "name": "AxolotlMCP Simple Server",
+    "version": "1.0.0",
+    "description": "一个简单的MCP服务器示例"
+  },
+  "transport": {
+    "type": "stdio",
+    "encoding": "utf-8"
+  },
+  "capabilities": {
+    "tools": {
+      "listChanged": true
+    },
+    "resources": {
+      "subscribe": true,
+      "listChanged": true
+    },
+    "prompts": {
+      "listChanged": true
+    }
+  },
+  "tools": [
+    {
+      "name": "echo",
+      "description": "回显输入的文本",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "要回显的文本"
+          }
+        },
+        "required": ["text"]
+      }
+    }
+  ],
+  "resources": [],
+  "prompts": []
+}
