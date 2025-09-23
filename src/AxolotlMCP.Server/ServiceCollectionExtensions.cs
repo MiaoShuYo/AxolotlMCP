@@ -17,6 +17,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddMcpServer(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddOptions<ServerOptions>().Bind(configuration.GetSection("Mcp:Server")).ValidateDataAnnotations();
+        services.AddOptions<RateLimitOptions>().Bind(configuration.GetSection("Mcp:RateLimit")).ValidateDataAnnotations();
 
         services.AddSingleton<ToolRegistry>();
         services.AddSingleton<AxolotlMCP.Core.Resources.ResourceRegistry>();
@@ -49,6 +50,14 @@ public static class ServiceCollectionExtensions
             var collection = sp.GetServices<IRequestMiddleware>();
             return new RequestMiddlewarePipeline(collection);
         });
+
+        // 示例中间件的注册（受配置控制）
+        services.AddSingleton<IRequestMiddleware>(sp =>
+        {
+            var opts = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<RateLimitOptions>>().Value;
+            return new Middleware.RateLimitMiddleware(opts.PermitLimit);
+        });
+        services.AddSingleton<IRequestMiddleware, Middleware.TimingMiddleware>();
         return services;
     }
 }
