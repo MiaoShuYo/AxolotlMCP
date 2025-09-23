@@ -4,6 +4,8 @@ using AxolotlMCP.Core.Protocol.Message;
 using AxolotlMCP.Core.Transport;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
+using System.Diagnostics;
+using AxolotlMCP.Core.Observability;
 
 namespace AxolotlMCP.Server;
 
@@ -88,17 +90,23 @@ public sealed class McpServer
 
                     if (hasMethod && hasId)
                     {
+                        var started = Stopwatch.GetTimestamp();
                         var request = JsonSerializer.Deserialize<RequestMessage>(line, JsonDefaults.Options);
                         if (request is null) continue;
                         var response = await _handler.HandleRequestAsync(request, cancellationToken).ConfigureAwait(false);
                         var json = JsonSerializer.Serialize(response, JsonDefaults.Options);
                         await _transport.SendAsync(json, cancellationToken).ConfigureAwait(false);
+                        McpMetrics.RequestsReceived.Add(1);
+                        McpMetrics.ResponsesSent.Add(1);
+                        var elapsedMs = (Stopwatch.GetTimestamp() - started) * 1000.0 / Stopwatch.Frequency;
+                        McpMetrics.RequestLatencyMs.Record(elapsedMs);
                     }
                     else if (hasMethod)
                     {
                         var notification = JsonSerializer.Deserialize<NotificationMessage>(line, JsonDefaults.Options);
                         if (notification is null) continue;
                         await _handler.HandleNotificationAsync(notification, cancellationToken).ConfigureAwait(false);
+                        McpMetrics.NotificationsReceived.Add(1);
                     }
                     else
                     {
@@ -108,6 +116,7 @@ public sealed class McpServer
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "处理消息失败：{Payload}", line);
+                    McpMetrics.Errors.Add(1);
                 }
             }
         }
