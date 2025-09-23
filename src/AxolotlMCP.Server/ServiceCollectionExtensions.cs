@@ -18,6 +18,8 @@ public static class ServiceCollectionExtensions
         services.AddOptions<ServerOptions>().Bind(configuration.GetSection("Mcp:Server")).ValidateDataAnnotations();
 
         services.AddSingleton<ToolRegistry>();
+        services.AddSingleton<AxolotlMCP.Core.Resources.ResourceRegistry>();
+        services.AddSingleton<AxolotlMCP.Core.Prompts.PromptRegistry>();
         services.AddSingleton<ServerLifecycle>();
 
         // 基础传输：默认使用 stdio。
@@ -35,6 +37,9 @@ public static class ServiceCollectionExtensions
 
         // 托管服务接入宿主生命周期。
         services.AddHostedService<McpServerHostedService>();
+
+        // 服务器通知发送器
+        services.AddSingleton<IServerNotifier, ServerNotifier>();
         return services;
     }
 }

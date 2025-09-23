@@ -4,6 +4,8 @@ using AxolotlMCP.Core.Protocol;
 using AxolotlMCP.Core.Protocol.Message;
 using AxolotlMCP.Core.Tools;
 using Microsoft.Extensions.Logging;
+using AxolotlMCP.Core.Resources;
+using AxolotlMCP.Core.Prompts;
 
 namespace AxolotlMCP.Server;
 
@@ -13,16 +15,25 @@ namespace AxolotlMCP.Server;
 public sealed class DefaultHandler : IMcpHandler
 {
     private readonly ToolRegistry _tools;
+    private readonly ResourceRegistry _resources;
+    private readonly PromptRegistry _prompts;
+    private readonly IServerNotifier _notifier;
     private readonly ILogger<DefaultHandler> _logger;
 
     /// <summary>
     /// 构造函数。
     /// </summary>
     /// <param name="tools">工具注册中心</param>
+    /// <param name="resources">资源注册中心</param>
+    /// <param name="prompts">提示注册中心</param>
+    /// <param name="notifier">服务器通知发送器</param>
     /// <param name="logger">日志记录器</param>
-    public DefaultHandler(ToolRegistry tools, ILogger<DefaultHandler> logger)
+    public DefaultHandler(ToolRegistry tools, ResourceRegistry resources, PromptRegistry prompts, IServerNotifier notifier, ILogger<DefaultHandler> logger)
     {
         _tools = tools;
+        _resources = resources;
+        _prompts = prompts;
+        _notifier = notifier;
         _logger = logger;
     }
 
@@ -39,6 +50,10 @@ public sealed class DefaultHandler : IMcpHandler
             "initialize" => await HandleInitializeAsync(request, cancellationToken),
             "tools/list" => await HandleToolsListAsync(request, cancellationToken),
             "tools/call" => await HandleToolsCallAsync(request, cancellationToken),
+            "resources/list" => await HandleResourcesListAsync(request, cancellationToken),
+            "prompts/list" => await HandlePromptsListAsync(request, cancellationToken),
+            "resources/subscribe" => await HandleResourcesSubscribeAsync(request, cancellationToken),
+            "prompts/subscribe" => await HandlePromptsSubscribeAsync(request, cancellationToken),
             "shutdown" => await HandleShutdownAsync(request, cancellationToken),
             "exit" => await HandleExitAsync(request, cancellationToken),
             _ => new ResponseMessage
@@ -65,7 +80,7 @@ public sealed class DefaultHandler : IMcpHandler
     /// 返回当前支持的方法名列表。
     /// </summary>
     /// <returns>方法名数组</returns>
-    public string[] GetSupportedMethods() => new[] { "initialize", "tools/list", "tools/call", "shutdown", "exit" };
+    public string[] GetSupportedMethods() => new[] { "initialize", "tools/list", "tools/call", "resources/list", "prompts/list", "resources/subscribe", "prompts/subscribe", "shutdown", "exit" };
 
     private Task<ResponseMessage> HandleInitializeAsync(RequestMessage request, CancellationToken ct)
     {
@@ -108,6 +123,63 @@ public sealed class DefaultHandler : IMcpHandler
         {
             Id = request.Id,
             Result = JsonSerializer.SerializeToElement(new { tools = items }, JsonDefaults.Options)
+        });
+    }
+
+    private Task<ResponseMessage> HandleResourcesListAsync(RequestMessage request, CancellationToken ct)
+    {
+        var items = _resources.GetAll();
+        return Task.FromResult(new ResponseMessage
+        {
+            Id = request.Id,
+            Result = JsonSerializer.SerializeToElement(new { resources = items }, JsonDefaults.Options)
+        });
+    }
+
+    private Task<ResponseMessage> HandlePromptsListAsync(RequestMessage request, CancellationToken ct)
+    {
+        var items = _prompts.GetAll();
+        return Task.FromResult(new ResponseMessage
+        {
+            Id = request.Id,
+            Result = JsonSerializer.SerializeToElement(new { prompts = items }, JsonDefaults.Options)
+        });
+    }
+
+    private Task<ResponseMessage> HandleResourcesSubscribeAsync(RequestMessage request, CancellationToken ct)
+    {
+        // 简化实现：订阅后在资源列表发生变更时发送一条通知（事件名：resources/changed）。
+        _resources.OnChanged += async (action, name) =>
+        {
+            var note = new NotificationMessage
+            {
+                Method = "resources/changed",
+                Params = JsonSerializer.SerializeToElement(new { action, name }, JsonDefaults.Options)
+            };
+            try { await _notifier.NotifyAsync(note, ct).ConfigureAwait(false); } catch { }
+        };
+        return Task.FromResult(new ResponseMessage
+        {
+            Id = request.Id,
+            Result = JsonSerializer.SerializeToElement(new { ok = true }, JsonDefaults.Options)
+        });
+    }
+
+    private Task<ResponseMessage> HandlePromptsSubscribeAsync(RequestMessage request, CancellationToken ct)
+    {
+        _prompts.OnChanged += async (action, name) =>
+        {
+            var note = new NotificationMessage
+            {
+                Method = "prompts/changed",
+                Params = JsonSerializer.SerializeToElement(new { action, name }, JsonDefaults.Options)
+            };
+            try { await _notifier.NotifyAsync(note, ct).ConfigureAwait(false); } catch { }
+        };
+        return Task.FromResult(new ResponseMessage
+        {
+            Id = request.Id,
+            Result = JsonSerializer.SerializeToElement(new { ok = true }, JsonDefaults.Options)
         });
     }
 
