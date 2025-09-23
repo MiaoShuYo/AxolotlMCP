@@ -14,7 +14,9 @@ public sealed class McpClient : IAsyncDisposable
 {
     private readonly ITransport _transport;
     private readonly ILogger<McpClient> _logger;
+    private readonly ClientOptions _options = new();
     private readonly ConcurrentDictionary<string, TaskCompletionSource<ResponseMessage>> _pending = new();
+    private SemaphoreSlim? _concurrencyGate;
     private CancellationTokenSource? _cts;
     private Task? _readLoopTask;
 
@@ -33,10 +35,23 @@ public sealed class McpClient : IAsyncDisposable
     /// </summary>
     /// <param name="transport">底层传输实现</param>
     /// <param name="logger">日志记录器</param>
-    public McpClient(ITransport transport, ILogger<McpClient> logger)
+    /// <param name="options">客户端配置选项（并发上限、默认超时、重试与退避）。可为 null。</param>
+    public McpClient(ITransport transport, ILogger<McpClient> logger, ClientOptions? options = null)
     {
         _transport = transport;
         _logger = logger;
+        if (options is not null)
+        {
+            _options = options;
+        }
+        if (_options.MaxConcurrentRequests > 0)
+        {
+            _concurrencyGate = new SemaphoreSlim(_options.MaxConcurrentRequests, _options.MaxConcurrentRequests);
+        }
+        if (_options.DefaultRequestTimeoutSeconds > 0)
+        {
+            DefaultRequestTimeout = TimeSpan.FromSeconds(_options.DefaultRequestTimeoutSeconds);
+        }
     }
 
     /// <summary>
@@ -87,30 +102,65 @@ public sealed class McpClient : IAsyncDisposable
     public async Task<ResponseMessage> SendRequestAsync(RequestMessage request, CancellationToken cancellationToken = default)
     {
         EnsureConnected();
-
-        var id = Guid.NewGuid().ToString("N");
-        var requestWithId = request with { Id = id };
-
-        var tcs = new TaskCompletionSource<ResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
-        if (!_pending.TryAdd(id, tcs))
+        if (_concurrencyGate is not null)
         {
-            throw new InvalidOperationException("Duplicate request id");
+            await _concurrencyGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         }
-
-        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeoutCts.CancelAfter(DefaultRequestTimeout);
 
         try
         {
-            var json = JsonSerializer.Serialize(requestWithId, JsonDefaults.Options);
-            await _transport.SendAsync(json, timeoutCts.Token).ConfigureAwait(false);
+            var attempt = 0;
+            var maxAttempts = Math.Max(1, _options.MaxRetries + 1);
+            Exception? lastError = null;
 
-            await using var _ = timeoutCts.Token.Register(() => tcs.TrySetException(new TimeoutException($"Request timeout: {id}")));
-            return await tcs.Task.ConfigureAwait(false);
+            while (attempt < maxAttempts)
+            {
+                attempt++;
+
+                var id = Guid.NewGuid().ToString("N");
+                var requestWithId = request with { Id = id };
+
+                var tcs = new TaskCompletionSource<ResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+                if (!_pending.TryAdd(id, tcs))
+                {
+                    throw new InvalidOperationException("Duplicate request id");
+                }
+
+                using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                timeoutCts.CancelAfter(DefaultRequestTimeout);
+
+                try
+                {
+                    var json = JsonSerializer.Serialize(requestWithId, JsonDefaults.Options);
+                    await _transport.SendAsync(json, timeoutCts.Token).ConfigureAwait(false);
+
+                    await using var _reg = timeoutCts.Token.Register(() => tcs.TrySetException(new TimeoutException($"Request timeout: {id}")));
+                    return await tcs.Task.ConfigureAwait(false);
+                }
+                catch (TimeoutException tex)
+                {
+                    lastError = tex;
+                    if (attempt >= maxAttempts)
+                    {
+                        throw;
+                    }
+                    var backoffMs = Math.Max(0, _options.RetryBackoffBaseMs) * (int)Math.Pow(2, attempt - 1);
+                    if (backoffMs > 0)
+                    {
+                        try { await Task.Delay(backoffMs, cancellationToken).ConfigureAwait(false); } catch { }
+                    }
+                }
+                finally
+                {
+                    _pending.TryRemove(id, out _);
+                }
+            }
+
+            throw lastError ?? new InvalidOperationException("Request failed without specific error.");
         }
         finally
         {
-            _pending.TryRemove(id, out _);
+            _concurrencyGate?.Release();
         }
     }
 

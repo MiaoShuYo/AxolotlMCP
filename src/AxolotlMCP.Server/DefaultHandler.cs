@@ -39,6 +39,8 @@ public sealed class DefaultHandler : IMcpHandler
             "initialize" => await HandleInitializeAsync(request, cancellationToken),
             "tools/list" => await HandleToolsListAsync(request, cancellationToken),
             "tools/call" => await HandleToolsCallAsync(request, cancellationToken),
+            "shutdown" => await HandleShutdownAsync(request, cancellationToken),
+            "exit" => await HandleExitAsync(request, cancellationToken),
             _ => new ResponseMessage
             {
                 Id = request.Id,
@@ -63,7 +65,7 @@ public sealed class DefaultHandler : IMcpHandler
     /// 返回当前支持的方法名列表。
     /// </summary>
     /// <returns>方法名数组</returns>
-    public string[] GetSupportedMethods() => new[] { "initialize", "tools/list", "tools/call" };
+    public string[] GetSupportedMethods() => new[] { "initialize", "tools/list", "tools/call", "shutdown", "exit" };
 
     private Task<ResponseMessage> HandleInitializeAsync(RequestMessage request, CancellationToken ct)
     {
@@ -79,6 +81,18 @@ public sealed class DefaultHandler : IMcpHandler
             Id = request.Id,
             Result = JsonSerializer.SerializeToElement(result, JsonDefaults.Options)
         });
+    }
+
+    private Task<ResponseMessage> HandleShutdownAsync(RequestMessage request, CancellationToken ct)
+    {
+        // 对于默认处理器：仅回包成功，具体停机动作由宿主/外层控制。
+        return Task.FromResult(new ResponseMessage { Id = request.Id, Result = JsonSerializer.SerializeToElement(new { ok = true }, JsonDefaults.Options) });
+    }
+
+    private Task<ResponseMessage> HandleExitAsync(RequestMessage request, CancellationToken ct)
+    {
+        // exit 作为通知型请求的兼容处理，直接返回成功。
+        return Task.FromResult(new ResponseMessage { Id = request.Id, Result = JsonSerializer.SerializeToElement(new { ok = true }, JsonDefaults.Options) });
     }
 
     private Task<ResponseMessage> HandleToolsListAsync(RequestMessage request, CancellationToken ct)
