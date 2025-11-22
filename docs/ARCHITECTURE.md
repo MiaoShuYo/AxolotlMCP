@@ -2,7 +2,7 @@
 
 ## 概述
 
-AxolotlMCP是一个基于.NET 8/9的Model Context Protocol (MCP)实现，提供了高性能、可扩展的MCP服务器和客户端框架。
+AxolotlMCP是一个基于.NET 8/9/10的Model Context Protocol (MCP)实现，提供了高性能、可扩展的MCP服务器和客户端框架。
 
 ## 核心组件
 
@@ -28,7 +28,7 @@ MCP客户端实现，提供：
 ## 设计原则
 
 ### 1. 高性能
-- 使用.NET 8/9的最新特性
+- 使用.NET 8/9/10的最新特性
 - 异步/等待模式
 - 内存优化
 

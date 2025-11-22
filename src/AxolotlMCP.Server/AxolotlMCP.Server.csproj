@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -9,7 +9,7 @@
     <PackageId>AxolotlMCP.Server</PackageId>
     <Version>1.0.0</Version>
     <Authors>AxolotlMCP Team</Authors>
-    <Description>MCP Server implementation for .NET 8 and .NET 9</Description>
+    <Description>MCP Server implementation for .NET 8, .NET 9, and .NET 10</Description>
     <PackageTags>mcp;model-context-protocol;server;ai;llm</PackageTags>
     <RepositoryUrl>https://github.com/your-org/AxolotlMCP</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
