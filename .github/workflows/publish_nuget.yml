@@ -1,33 +1,86 @@
-name: Publish NuGet to nuget.org
-on:
-  push:
-    tags:
-      - 'v*.*.*'
+steps:
+  - name: Checkout
+    uses: actions/checkout@v4
 
-permissions:
-  contents: read
+  - name: Setup .NET
+    uses: actions/setup-dotnet@v4
+    with:
+      dotnet-version: '8.x'
 
-jobs:
-  publish:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+  - name: Restore
+    run: dotnet restore
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.x'
+  - name: Set VERSION (from tag or workflow input)
+    env:
+      GITHUB_EVENT_NAME: ${{ github.event_name }}
+      GITHUB_REF: ${{ github.ref }}
+      INPUT_VERSION: ${{ github.event.inputs.version }}
+    run: |
+      set -euo pipefail
+      echo "GITHUB_EVENT_NAME=$GITHUB_EVENT_NAME"
+      echo "GITHUB_REF=$GITHUB_REF"
 
-      - name: Restore
-        run: dotnet restore
+      if [ "$GITHUB_EVENT_NAME" = "push" ] && [[ "$GITHUB_REF" == refs/tags/* ]]; then
+        TAG="${GITHUB_REF#refs/tags/}"
+        # strip leading 'v' if present
+        if [[ "$TAG" == v* ]]; then
+          VERSION="${TAG#v}"
+        else
+          VERSION="$TAG"
+        fi
+      elif [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+        if [ -z "${INPUT_VERSION:-}" ]; then
+          echo "::error::workflow_dispatch triggered but 'version' input is empty. When running manually please provide a version (e.g. 1.2.3)."
+          exit 1
+        fi
+        if [[ "${INPUT_VERSION}" == v* ]]; then
+          VERSION="${INPUT_VERSION#v}"
+        else
+          VERSION="${INPUT_VERSION}"
+        fi
+      else
+        echo "::error::Unsupported event or no tag found. This workflow must be triggered by a tag push (refs/tags/vX.Y.Z) or workflow_dispatch with a 'version' input."
+        exit 1
+      fi
 
-      - name: Get version from tag
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+      echo "Resolved VERSION=$VERSION"
+      echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      - name: Pack
-        run: dotnet pack ./src/MyProject/MyProject.csproj -c Release -o ./nupkgs /p:PackageVersion=${{ env.VERSION }}
+  - name: Pack projects (all .csproj in repo)
+    run: |
+      set -euo pipefail
+      mkdir -p ./nupkgs
+      echo "Packing projects with PackageVersion=${{ env.VERSION }}"
+      found=0
+      while IFS= read -r proj; do
+        found=1
+        echo "Packing: $proj"
+        dotnet pack "$proj" -c Release -o ./nupkgs /p:PackageVersion=${{ env.VERSION }} --no-build
+      done < <(git ls-files '*.csproj')
+      if [ "$found" -eq 0 ]; then
+        echo "::error::No .csproj files found in the repository."
+        exit 1
+      fi
 
-      - name: Push to NuGet.org
-        env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
-        run: dotnet nuget push ./nupkgs/*.nupkg -k $NUGET_API_KEY -s https://api.nuget.org/v3/index.json --skip-duplicate
+  - name: Show produced nupkgs
+    run: |
+      if ls ./nupkgs/*.nupkg 1> /dev/null 2>&1; then
+        ls -lh ./nupkgs
+      else
+        echo "::error::No nupkg files were produced."
+        exit 1
+      fi
+
+  - name: Push to NuGet.org
+    env:
+      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+    run: |
+      set -euo pipefail
+      if [ -z "${NUGET_API_KEY:-}" ]; then
+        echo "::error::NUGET_API_KEY secret is not set. Please add it to repository secrets."
+        exit 1
+      fi
+      for pkg in ./nupkgs/*.nupkg; do
+        echo "Pushing $pkg to nuget.org (skip duplicates)"
+        dotnet nuget push "$pkg" -k "$NUGET_API_KEY" -s https://api.nuget.org/v3/index.json --skip-duplicate
+      done
