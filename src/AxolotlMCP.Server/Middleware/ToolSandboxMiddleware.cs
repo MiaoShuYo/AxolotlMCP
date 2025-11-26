@@ -13,11 +13,22 @@ public sealed class ToolSandboxMiddleware : IRequestMiddleware
     private readonly ToolSandboxOptions _options;
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _toolSemaphores = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// 初始化工具沙箱中间件。
+    /// </summary>
+    /// <param name="options"></param>
     public ToolSandboxMiddleware(IOptions<ToolSandboxOptions> options)
     {
         _options = options.Value;
     }
 
+    /// <summary>
+    /// 处理请求。
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <param name="next"></param>
+    /// <returns></returns>
     public async Task<ResponseMessage> InvokeAsync(RequestMessage request, CancellationToken cancellationToken, Func<RequestMessage, CancellationToken, Task<ResponseMessage>> next)
     {
         if (!string.Equals(request.Method, "tools/call", StringComparison.Ordinal))
