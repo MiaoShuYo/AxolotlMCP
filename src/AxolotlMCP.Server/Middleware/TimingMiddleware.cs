@@ -10,7 +10,7 @@ namespace AxolotlMCP.Server.Middleware;
 public sealed class TimingMiddleware : IRequestMiddleware
 {
     /// <summary>
-    /// 处理请求并记录其处理时间。
+    /// 处理请求。
     /// </summary>
     /// <param name="request"></param>
     /// <param name="cancellationToken"></param>

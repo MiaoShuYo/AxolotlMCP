@@ -11,7 +11,7 @@ public sealed class TimeoutMiddleware : IRequestMiddleware
     private readonly int _timeoutSeconds;
 
     /// <summary>
-    /// 初始化超时中间件。
+    /// 创建单请求超时中间件。
     /// </summary>
     /// <param name="options"></param>
     public TimeoutMiddleware(IOptions<SecurityOptions> options)

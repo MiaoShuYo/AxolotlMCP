@@ -18,7 +18,7 @@ public class JsonSchemaGeneratorTests
     }
 
     /// <summary>
-    /// 测试生成包含必填字段和数组字段的对象的 JSON Schema。
+    /// 生成包含必填字段和数组字段的对象模式。
     /// </summary>
     [Fact]
     public void Generate_Object_With_Required_And_Array()

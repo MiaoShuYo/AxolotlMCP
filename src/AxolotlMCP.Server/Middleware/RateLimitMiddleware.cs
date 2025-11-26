@@ -12,7 +12,7 @@ public sealed class RateLimitMiddleware : IRequestMiddleware, IDisposable
     private readonly RateLimiter _limiter;
 
     /// <summary>
-    /// 初始化限流中间件。
+    /// 创建并发限流中间件。
     /// </summary>
     /// <param name="permitLimit"></param>
     public RateLimitMiddleware(int permitLimit = 64)
@@ -26,7 +26,7 @@ public sealed class RateLimitMiddleware : IRequestMiddleware, IDisposable
     }
 
     /// <summary>
-    /// 处理请求消息，应用限流策略。
+    /// 处理请求。
     /// </summary>
     /// <param name="request"></param>
     /// <param name="cancellationToken"></param>
@@ -49,8 +49,9 @@ public sealed class RateLimitMiddleware : IRequestMiddleware, IDisposable
 
         return await next(request, cancellationToken).ConfigureAwait(false);
     }
+
     /// <summary>
-    /// 释放限流器资源。
+    /// 释放资源。
     /// </summary>
     public void Dispose()
     {

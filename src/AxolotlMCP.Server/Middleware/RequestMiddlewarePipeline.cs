@@ -10,15 +10,16 @@ public sealed class RequestMiddlewarePipeline
     private readonly IReadOnlyList<IRequestMiddleware> _middlewares;
 
     /// <summary>
-    /// 初始化请求中间件管道。
+    /// 创建请求中间件管道。
     /// </summary>
     /// <param name="middlewares"></param>
     public RequestMiddlewarePipeline(IEnumerable<IRequestMiddleware> middlewares)
     {
         _middlewares = middlewares.ToList();
     }
+
     /// <summary>
-    /// 执行请求中间件管道。
+    /// 执行中间件管道。
     /// </summary>
     /// <param name="request"></param>
     /// <param name="cancellationToken"></param>

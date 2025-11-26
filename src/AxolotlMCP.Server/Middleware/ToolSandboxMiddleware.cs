@@ -14,7 +14,7 @@ public sealed class ToolSandboxMiddleware : IRequestMiddleware
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _toolSemaphores = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// 初始化工具沙箱中间件。
+    /// 创建工具沙箱中间件。
     /// </summary>
     /// <param name="options"></param>
     public ToolSandboxMiddleware(IOptions<ToolSandboxOptions> options)

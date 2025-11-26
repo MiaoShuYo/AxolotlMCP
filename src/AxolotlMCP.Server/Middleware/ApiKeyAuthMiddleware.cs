@@ -13,7 +13,7 @@ public sealed class ApiKeyAuthMiddleware : IRequestMiddleware
     private readonly SecurityOptions _options;
 
     /// <summary>
-    /// 初始化 API Key 鉴权中间件。
+    /// 创建 API Key 鉴权中间件。
     /// </summary>
     /// <param name="options"></param>
     public ApiKeyAuthMiddleware(IOptions<SecurityOptions> options)
@@ -28,7 +28,6 @@ public sealed class ApiKeyAuthMiddleware : IRequestMiddleware
     /// <param name="cancellationToken"></param>
     /// <param name="next"></param>
     /// <returns></returns>
-
     public Task<ResponseMessage> InvokeAsync(RequestMessage request, CancellationToken cancellationToken, Func<RequestMessage, CancellationToken, Task<ResponseMessage>> next)
     {
         if (!_options.ApiKeyEnabled)
