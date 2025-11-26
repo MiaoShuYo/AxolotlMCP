@@ -9,6 +9,13 @@ namespace AxolotlMCP.Server.Middleware;
 /// </summary>
 public sealed class TimingMiddleware : IRequestMiddleware
 {
+    /// <summary>
+    /// 处理请求。
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <param name="next"></param>
+    /// <returns></returns>
     public async Task<ResponseMessage> InvokeAsync(RequestMessage request, CancellationToken cancellationToken, Func<RequestMessage, CancellationToken, Task<ResponseMessage>> next)
     {
         var sw = Stopwatch.StartNew();

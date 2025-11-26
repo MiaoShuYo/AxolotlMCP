@@ -10,11 +10,22 @@ public sealed class TimeoutMiddleware : IRequestMiddleware
 {
     private readonly int _timeoutSeconds;
 
+    /// <summary>
+    /// 创建单请求超时中间件。
+    /// </summary>
+    /// <param name="options"></param>
     public TimeoutMiddleware(IOptions<SecurityOptions> options)
     {
         _timeoutSeconds = options.Value.RequestTimeoutSeconds;
     }
 
+    /// <summary>
+    /// 处理请求。
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <param name="next"></param>
+    /// <returns></returns>
     public async Task<ResponseMessage> InvokeAsync(RequestMessage request, CancellationToken cancellationToken, Func<RequestMessage, CancellationToken, Task<ResponseMessage>> next)
     {
         if (_timeoutSeconds <= 0)

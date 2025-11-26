@@ -10,6 +10,7 @@ using AxolotlMCP.Core.Transport;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
+using AxolotlMCP.Server.Middleware;
 
 namespace AxolotlMCP.Tests;
 
@@ -43,7 +44,8 @@ public class SubscriptionTests
                 sp.GetRequiredService<PromptRegistry>(),
                 sp.GetRequiredService<IServerNotifier>(),
                 NullLogger<DefaultHandler>.Instance),
-            NullLogger<McpServer>.Instance));
+            NullLogger<McpServer>.Instance,
+            new RequestMiddlewarePipeline(Array.Empty<IRequestMiddleware>()))); // 传递空中间件列表
 
         var sp = services.BuildServiceProvider();
         var server = sp.GetRequiredService<McpServer>();

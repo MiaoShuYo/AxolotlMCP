@@ -9,11 +9,22 @@ public sealed class RequestMiddlewarePipeline
 {
     private readonly IReadOnlyList<IRequestMiddleware> _middlewares;
 
+    /// <summary>
+    /// 创建请求中间件管道。
+    /// </summary>
+    /// <param name="middlewares"></param>
     public RequestMiddlewarePipeline(IEnumerable<IRequestMiddleware> middlewares)
     {
         _middlewares = middlewares.ToList();
     }
 
+    /// <summary>
+    /// 执行中间件管道。
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <param name="terminal"></param>
+    /// <returns></returns>
     public Task<ResponseMessage> ExecuteAsync(RequestMessage request, CancellationToken cancellationToken, Func<RequestMessage, CancellationToken, Task<ResponseMessage>> terminal)
     {
         Func<RequestMessage, CancellationToken, Task<ResponseMessage>> next = terminal;
