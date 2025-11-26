@@ -1,6 +1,6 @@
 # AxolotlMCP
 
-一个基于.NET 8和.NET 9的Model Context Protocol (MCP) 实现，类似于FastMCP但专为.NET生态系统设计。
+一个基于.NET 8、.NET 9和.NET 10的Model Context Protocol (MCP) 实现，类似于FastMCP但专为.NET生态系统设计。
 
 ## 项目结构概览
 
@@ -10,7 +10,7 @@
 AxolotlMCP/
 ├── 📁 src/                                    # 源代码根目录
 │   ├── 📁 AxolotlMCP.Core/                   # 核心协议与抽象层
-│   │   ├── 📄 AxolotlMCP.Core.csproj         # Core 项目文件 (net8.0/net9.0)
+│   │   ├── 📄 AxolotlMCP.Core.csproj         # Core 项目文件 (net8.0/net9.0/net10.0)
 │   │   ├── 📄 GlobalUsing.cs                 # 全局 using 汇总
 │   │   ├── 📁 Protocol/                      # MCP 协议数据结构
 │   │   │   ├── 📁 Message/                   # 协议消息模型
@@ -116,7 +116,7 @@ AxolotlMCP/
 
 | 组件 | 技术栈 | 说明 |
 |------|--------|------|
-| **目标框架** | .NET 8.0 / .NET 9.0 | 多目标框架支持 |
+| **目标框架** | .NET 8.0 / .NET 9.0 / .NET 10.0 | 多目标框架支持 |
 | **序列化** | System.Text.Json | 高性能JSON序列化 |
 | **依赖注入** | Microsoft.Extensions.DI | 内置DI容器 |
 | **日志记录** | Microsoft.Extensions.Logging | 结构化日志 |
@@ -150,7 +150,7 @@ graph TD
 
 ## 特性
 
-- 🚀 **高性能**: 基于.NET 8/9的最新特性
+- 🚀 **高性能**: 基于.NET 8/9/10的最新特性
 - 🔧 **易于使用**: 简单的API设计
 - 🛠️ **可扩展**: 支持自定义处理器和中间件
 - 📦 **NuGet包**: 支持包管理器安装
