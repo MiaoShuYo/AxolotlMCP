@@ -42,6 +42,11 @@ Use the provided script to create all issues at once:
 
 ```bash
 cd .github/ISSUE_TEMPLATES_FROM_PR35
+
+# Make script executable if needed
+chmod +x create_issues.sh
+
+# Run the script
 ./create_issues.sh
 ```
 
@@ -67,11 +72,14 @@ You can create issues manually by copying the content from each template file:
 Create issues one at a time using `gh` CLI:
 
 ```bash
-# Example for issue #1
+# First, extract the body (skip front matter)
+sed -n '/^---$/,/^---$/d; p' issue-01-stdio-transport-cancellation.md > /tmp/issue-body.md
+
+# Then create the issue
 gh issue create \
   --repo MiaoShuYo/AxolotlMCP \
   --title "[BUG] Missing CancellationToken in StdioTransport.ReadLineAsync" \
-  --body-file issue-01-stdio-transport-cancellation.md \
+  --body-file /tmp/issue-body.md \
   --label "bug,high-priority,transport"
 ```
 
