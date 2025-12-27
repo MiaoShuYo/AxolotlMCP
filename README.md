@@ -218,6 +218,17 @@ dotnet run --project examples/AxolotlMCP.Examples
 
 MIT License
 
+## 已知问题
+
+在代码审查中发现了14个需要修复的问题。详细信息请参阅：
+
+- 📋 [Bug报告摘要](BUG_REPORT_SUMMARY.md) - 英文版详细问题列表
+- 🐛 [发现的Bug](BUGS_FOUND.md) - 中文版详细分析
+- 🔧 [修复快速参考](FIXES_QUICK_REFERENCE.md) - 代码修复示例
+- ✅ [如何创建Issues](HOW_TO_CREATE_ISSUES.md) - 将bug提交到GitHub Issues的指南
+
+这些问题已经在[PR #35](https://github.com/MiaoShuYo/AxolotlMCP/pull/35)中进行了详细记录。您可以使用提供的脚本批量创建GitHub Issues来跟踪和修复这些问题。
+
 ## 贡献
 
 欢迎提交Issue和Pull Request！
