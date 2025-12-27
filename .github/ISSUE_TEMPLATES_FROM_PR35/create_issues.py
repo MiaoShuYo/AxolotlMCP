@@ -40,9 +40,15 @@ def parse_template(file_path):
     front_matter = front_matter_match.group(1)
     body = front_matter_match.group(2).strip()
     
-    # Extract title
-    title_match = re.search(r'title:\s*["\']?(.*?)["\']?\s*$', front_matter, re.MULTILINE)
-    title = title_match.group(1) if title_match else None
+    # Extract title (handles both quoted and unquoted)
+    title_match = re.search(r'title:\s*(.+?)\s*$', front_matter, re.MULTILINE)
+    if title_match:
+        title = title_match.group(1).strip()
+        # Remove surrounding quotes if present
+        if (title.startswith('"') and title.endswith('"')) or (title.startswith("'") and title.endswith("'")):
+            title = title[1:-1]
+    else:
+        title = None
     
     # Extract labels
     labels_match = re.search(r'labels:\s*(.*?)\s*$', front_matter, re.MULTILINE)

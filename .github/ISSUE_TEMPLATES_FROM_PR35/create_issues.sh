@@ -36,8 +36,8 @@ create_issue() {
         return 1
     fi
     
-    # Extract title from front matter
-    title=$(grep "^title:" "$issue_file" | sed 's/title: "\(.*\)"/\1/' | tr -d '"')
+    # Extract title from front matter (handles both quoted and unquoted)
+    title=$(grep "^title:" "$issue_file" | sed 's/^title: *//' | sed 's/^"\(.*\)"$/\1/')
     
     # Extract labels from front matter
     labels=$(grep "^labels:" "$issue_file" | sed 's/labels: //')

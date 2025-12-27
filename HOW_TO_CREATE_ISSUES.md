@@ -72,14 +72,14 @@ Each issue includes:
 
 ## Testing Before Creating Issues
 
-Both scripts support a dry-run mode to preview what will be created:
+The Python script supports a dry-run mode to preview what will be created:
 
 ```bash
-# Python
+# Python (with dry-run support)
 python3 create_issues.py --dry-run
-
-# Bash (edit script to add dry-run logic if needed)
 ```
+
+Note: The Bash script does not have dry-run mode. Use the Python script if you want to preview before creating issues.
 
 ## Manual Issue Creation
 
