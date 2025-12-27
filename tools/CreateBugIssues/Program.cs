@@ -51,17 +51,17 @@ class Program
             
             if (string.IsNullOrEmpty(bugsFile))
             {
-                // Default to checking relative paths
-                bugsFile = Path.Combine(Directory.GetCurrentDirectory(), "../../BUGS_FOUND.md");
-                if (!File.Exists(bugsFile))
-                {
-                    bugsFile = Path.Combine(Directory.GetCurrentDirectory(), "BUGS_FOUND.md");
-                }
+                // Search for BUGS_FOUND.md by walking up the directory tree
+                bugsFile = FindBugsFile(Directory.GetCurrentDirectory());
             }
             
-            if (!File.Exists(bugsFile))
+            if (string.IsNullOrEmpty(bugsFile) || !File.Exists(bugsFile))
             {
-                Console.WriteLine($"Error: Bug report file not found at {bugsFile}");
+                Console.WriteLine($"Error: Bug report file not found");
+                if (!string.IsNullOrEmpty(bugsFile))
+                {
+                    Console.WriteLine($"  Searched at: {bugsFile}");
+                }
                 Console.WriteLine("Tip: Set BUGS_FILE_PATH environment variable to specify a custom path");
                 return 1;
             }
@@ -118,6 +118,43 @@ class Program
         }
     }
     
+    static string? FindBugsFile(string startDirectory)
+    {
+        const string fileName = "BUGS_FOUND.md";
+        
+        // First check the start directory
+        var candidate = Path.Combine(startDirectory, fileName);
+        if (File.Exists(candidate))
+        {
+            return candidate;
+        }
+        
+        // Walk up the directory tree looking for BUGS_FOUND.md
+        var currentDir = startDirectory;
+        int maxLevels = 10; // Limit how far up we search
+        
+        while (currentDir != null && maxLevels > 0)
+        {
+            var parent = Directory.GetParent(currentDir);
+            if (parent == null)
+            {
+                break;
+            }
+            
+            currentDir = parent.FullName;
+            candidate = Path.Combine(currentDir, fileName);
+            
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+            
+            maxLevels--;
+        }
+        
+        return null;
+    }
+    
     static List<BugInfo> ParseBugReport(string filePath)
     {
         var bugs = new List<BugInfo>();
@@ -147,7 +184,7 @@ class Program
             }
             
             // Detect bug heading (###)
-            if (line.StartsWith("### ") && char.IsDigit(line[4]))
+            if (line.StartsWith("### ") && line.Length > 4 && char.IsDigit(line[4]))
             {
                 // Save previous bug if exists
                 if (currentBug != null && descriptionLines.Count > 0)
