@@ -1,0 +1,55 @@
+name: Create Bug Issues
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (do not actually create issues)'
+        required: false
+        default: 'false'
+
+jobs:
+  create-issues:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      
+      - name: Build CreateBugIssues tool
+        run: |
+          cd tools/CreateBugIssues
+          dotnet build --configuration Release
+      
+      - name: Create GitHub Issues
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+          GITHUB_REPOSITORY_NAME: ${{ github.event.repository.name }}
+        run: |
+          cd tools/CreateBugIssues
+          dotnet run --configuration Release
+      
+      - name: Dry Run - Parse bugs only
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: |
+          cd tools/CreateBugIssues
+          echo "=== Dry Run Mode ==="
+          echo "The following bugs would be created as issues:"
+          echo ""
+          
+          # Count bugs
+          grep -E "^### [0-9]+\." ../../BUGS_FOUND.md | wc -l | xargs -I {} echo "Total bugs found: {}"
+          echo ""
+          
+          # List bug titles
+          grep -E "^### [0-9]+\." ../../BUGS_FOUND.md || true
