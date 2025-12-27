@@ -46,16 +46,23 @@ class Program
             Console.WriteLine($"Repository: {owner}/{repo}");
             Console.WriteLine($"Token: {githubToken[..4]}...{githubToken[^4..]}\n");
             
-            // Parse bug reports
-            var bugsFile = Path.Combine(Directory.GetCurrentDirectory(), "../../BUGS_FOUND.md");
-            if (!File.Exists(bugsFile))
+            // Parse bug reports - check for custom path first
+            var bugsFile = Environment.GetEnvironmentVariable("BUGS_FILE_PATH");
+            
+            if (string.IsNullOrEmpty(bugsFile))
             {
-                bugsFile = Path.Combine(Directory.GetCurrentDirectory(), "BUGS_FOUND.md");
+                // Default to checking relative paths
+                bugsFile = Path.Combine(Directory.GetCurrentDirectory(), "../../BUGS_FOUND.md");
+                if (!File.Exists(bugsFile))
+                {
+                    bugsFile = Path.Combine(Directory.GetCurrentDirectory(), "BUGS_FOUND.md");
+                }
             }
             
             if (!File.Exists(bugsFile))
             {
                 Console.WriteLine($"Error: Bug report file not found at {bugsFile}");
+                Console.WriteLine("Tip: Set BUGS_FILE_PATH environment variable to specify a custom path");
                 return 1;
             }
             
@@ -100,7 +107,13 @@ class Program
         catch (Exception ex)
         {
             Console.WriteLine($"Fatal error: {ex.Message}");
-            Console.WriteLine(ex.StackTrace);
+            
+            // Only log stack trace if DEBUG environment variable is set
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DEBUG")))
+            {
+                Console.WriteLine("\nStack trace:");
+                Console.WriteLine(ex.StackTrace);
+            }
             return 1;
         }
     }

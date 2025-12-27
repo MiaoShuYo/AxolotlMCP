@@ -62,6 +62,15 @@ Or with custom repository:
 GITHUB_TOKEN=your_token dotnet run -- owner repo-name
 ```
 
+### Environment Variables
+
+The tool supports the following environment variables:
+- `GITHUB_TOKEN` (required): Your GitHub personal access token
+- `GITHUB_REPOSITORY_OWNER` (optional): Repository owner, defaults to "MiaoShuYo"
+- `GITHUB_REPOSITORY_NAME` (optional): Repository name, defaults to "AxolotlMCP"
+- `BUGS_FILE_PATH` (optional): Custom path to bug report file, defaults to searching for "BUGS_FOUND.md"
+- `DEBUG` (optional): Enable detailed error stack traces for debugging
+
 ## Bug Report Format
 
 The tool expects the bug report to follow this format:

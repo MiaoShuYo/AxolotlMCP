@@ -34,6 +34,8 @@ dotnet run -- owner repo-name
 - `GITHUB_TOKEN` (required): Your GitHub personal access token
 - `GITHUB_REPOSITORY_OWNER` (optional): Repository owner, defaults to "MiaoShuYo"
 - `GITHUB_REPOSITORY_NAME` (optional): Repository name, defaults to "AxolotlMCP"
+- `BUGS_FILE_PATH` (optional): Custom path to the bug report file, defaults to searching for "BUGS_FOUND.md" in current and parent directories
+- `DEBUG` (optional): Set to any value to enable detailed stack traces in error messages
 
 ## What it does
 
