@@ -44,9 +44,10 @@ def parse_template(file_path):
     title_match = re.search(r'title:\s*(.+?)\s*$', front_matter, re.MULTILINE)
     if title_match:
         title = title_match.group(1).strip()
-        # Remove surrounding quotes if present
-        if (title.startswith('"') and title.endswith('"')) or (title.startswith("'") and title.endswith("'")):
-            title = title[1:-1]
+        # Remove surrounding quotes if they match
+        if len(title) >= 2:
+            if (title[0] == '"' and title[-1] == '"') or (title[0] == "'" and title[-1] == "'"):
+                title = title[1:-1]
     else:
         title = None
     

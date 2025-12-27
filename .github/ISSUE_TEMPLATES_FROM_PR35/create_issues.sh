@@ -3,7 +3,8 @@
 # Script to create GitHub issues from PR #35 bug report
 # This script will create 14 issues based on the bugs discovered during code review
 
-set -e
+# Continue on error - we want to create remaining issues even if some fail
+set +e
 
 REPO="MiaoShuYo/AxolotlMCP"
 ISSUE_DIR=".github/ISSUE_TEMPLATES_FROM_PR35"
