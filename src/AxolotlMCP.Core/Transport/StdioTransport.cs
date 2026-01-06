@@ -60,7 +60,7 @@ public sealed class StdioTransport : ITransport
     {
         while (_running && !cancellationToken.IsCancellationRequested)
         {
-            var line = await _input.ReadLineAsync();
+            var line = await _input.ReadLineAsync(cancellationToken);
             if (line is null)
             {
                 yield break; // EOF

@@ -70,7 +70,7 @@ public sealed class NamedPipeTransport : ITransport
             string? line;
             try
             {
-                line = await _reader.ReadLineAsync().ConfigureAwait(false);
+                line = await _reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (IOException)
             {

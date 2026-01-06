@@ -39,7 +39,11 @@ public class ResourcesPromptsTests
             sp.GetRequiredService<ResourceRegistry>(),
             sp.GetRequiredService<PromptRegistry>(),
             new NoopNotifier(),
+            new ServerLifecycle(),
             NullLogger<DefaultHandler>.Instance);
+
+        // 先初始化服务器
+        await handler.HandleRequestAsync(new AxolotlMCP.Core.Protocol.Message.RequestMessage { Method = "initialize", Id = "0" });
 
         // 资源与提示注册
         sp.GetRequiredService<ResourceRegistry>().Register(new McpResource { Name = "r1", Description = "d" });

@@ -20,6 +20,7 @@ public sealed class DefaultHandler : IMcpHandler
     private readonly ResourceRegistry _resources;
     private readonly PromptRegistry _prompts;
     private readonly IServerNotifier _notifier;
+    private readonly ServerLifecycle _lifecycle;
     private readonly ILogger<DefaultHandler> _logger;
 
     /// <summary>
@@ -29,13 +30,15 @@ public sealed class DefaultHandler : IMcpHandler
     /// <param name="resources">资源注册中心</param>
     /// <param name="prompts">提示注册中心</param>
     /// <param name="notifier">服务器通知发送器</param>
+    /// <param name="lifecycle">服务器生命周期状态机</param>
     /// <param name="logger">日志记录器</param>
-    public DefaultHandler(ToolRegistry tools, ResourceRegistry resources, PromptRegistry prompts, IServerNotifier notifier, ILogger<DefaultHandler> logger)
+    public DefaultHandler(ToolRegistry tools, ResourceRegistry resources, PromptRegistry prompts, IServerNotifier notifier, ServerLifecycle lifecycle, ILogger<DefaultHandler> logger)
     {
         _tools = tools;
         _resources = resources;
         _prompts = prompts;
         _notifier = notifier;
+        _lifecycle = lifecycle;
         _logger = logger;
     }
 
@@ -47,6 +50,25 @@ public sealed class DefaultHandler : IMcpHandler
     /// <returns>响应消息</returns>
     public async Task<ResponseMessage> HandleRequestAsync(RequestMessage request, CancellationToken cancellationToken = default)
     {
+        // 检查生命周期状态
+        if (request.Method != "initialize" && !_lifecycle.IsInitialized)
+        {
+            return new ResponseMessage
+            {
+                Id = request.Id,
+                Error = new McpError { Code = ErrorCodes.NotInitialized, Message = "服务器尚未初始化" }
+            };
+        }
+
+        if (_lifecycle.IsShuttingDown)
+        {
+            return new ResponseMessage
+            {
+                Id = request.Id,
+                Error = new McpError { Code = ErrorCodes.ShuttingDown, Message = "服务器正在关闭" }
+            };
+        }
+
         return request.Method switch
         {
             "initialize" => await HandleInitializeAsync(request, cancellationToken),
@@ -61,7 +83,7 @@ public sealed class DefaultHandler : IMcpHandler
             _ => new ResponseMessage
             {
                 Id = request.Id,
-                Error = new McpError { Code = -32601, Message = "方法未找到" }
+                Error = new McpError { Code = ErrorCodes.MethodNotFound, Message = "方法未找到" }
             }
         };
     }
@@ -86,6 +108,17 @@ public sealed class DefaultHandler : IMcpHandler
 
     private Task<ResponseMessage> HandleInitializeAsync(RequestMessage request, CancellationToken ct)
     {
+        if (!_lifecycle.TryInitialize())
+        {
+            _logger.LogWarning("重复初始化请求");
+            return Task.FromResult(new ResponseMessage
+            {
+                Id = request.Id,
+                Error = new McpError { Code = ErrorCodes.InvalidRequest, Message = "服务器已初始化" }
+            });
+        }
+
+        _logger.LogInformation("服务器已初始化");
         var result = new
         {
             protocolVersion = "2024-11-05",
@@ -102,12 +135,16 @@ public sealed class DefaultHandler : IMcpHandler
 
     private Task<ResponseMessage> HandleShutdownAsync(RequestMessage request, CancellationToken ct)
     {
+        _lifecycle.TryShutdown();
+        _logger.LogInformation("服务器正在关闭");
         // 对于默认处理器：仅回包成功，具体停机动作由宿主/外层控制。
         return Task.FromResult(new ResponseMessage { Id = request.Id, Result = JsonSerializer.SerializeToElement(new { ok = true }, JsonDefaults.Options) });
     }
 
     private Task<ResponseMessage> HandleExitAsync(RequestMessage request, CancellationToken ct)
     {
+        _lifecycle.MarkExitRequested();
+        _logger.LogInformation("收到 exit 通知");
         // exit 作为通知型请求的兼容处理，直接返回成功。
         return Task.FromResult(new ResponseMessage { Id = request.Id, Result = JsonSerializer.SerializeToElement(new { ok = true }, JsonDefaults.Options) });
     }
@@ -159,7 +196,7 @@ public sealed class DefaultHandler : IMcpHandler
                 Method = "resources/changed",
                 Params = JsonSerializer.SerializeToElement(new { action, name }, JsonDefaults.Options)
             };
-            try { await _notifier.NotifyAsync(note, ct).ConfigureAwait(false); } catch { }
+            try { await _notifier.NotifyAsync(note, CancellationToken.None).ConfigureAwait(false); } catch { }
         };
         return Task.FromResult(new ResponseMessage
         {
@@ -177,7 +214,7 @@ public sealed class DefaultHandler : IMcpHandler
                 Method = "prompts/changed",
                 Params = JsonSerializer.SerializeToElement(new { action, name }, JsonDefaults.Options)
             };
-            try { await _notifier.NotifyAsync(note, ct).ConfigureAwait(false); } catch { }
+            try { await _notifier.NotifyAsync(note, CancellationToken.None).ConfigureAwait(false); } catch { }
         };
         return Task.FromResult(new ResponseMessage
         {
@@ -199,7 +236,7 @@ public sealed class DefaultHandler : IMcpHandler
             return new ResponseMessage
             {
                 Id = request.Id,
-                Error = new McpError { Code = -32601, Message = $"工具不存在: {name}" }
+                Error = new McpError { Code = ErrorCodes.MethodNotFound, Message = $"工具不存在: {name}" }
             };
         }
         act?.SetTag("tool.found", true);
@@ -224,7 +261,7 @@ public sealed class DefaultHandler : IMcpHandler
     private static ResponseMessage InvalidParams(string id) => new()
     {
         Id = id,
-        Error = new McpError { Code = -32602, Message = "无效参数" }
+        Error = new McpError { Code = ErrorCodes.InvalidParams, Message = "无效参数" }
     };
 }
 

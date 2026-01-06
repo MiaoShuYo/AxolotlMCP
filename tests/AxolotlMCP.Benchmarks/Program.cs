@@ -1,21 +1,21 @@
-using System;
+using BenchmarkDotNet.Running;
 
-namespace AxolotlMCP.Benchmarks
+namespace AxolotlMCP.Benchmarks;
+
+/// <summary>
+/// 基准测试程序入口。
+/// </summary>
+public static class Program
 {
     /// <summary>
-    /// 基准测试程序入口。后续可替换为 BenchmarkSwitcher 或 BenchmarkRunner 启动。
+    /// 应用程序入口点。使用 BenchmarkSwitcher 支持命令行选择要运行的基准测试。
     /// </summary>
-    public static class Program
+    /// <param name="args">命令行参数</param>
+    public static void Main(string[] args)
     {
-        /// <summary>
-        /// 应用程序入口点。
-        /// </summary>
-        /// <param name="args">命令行参数</param>
-        public static void Main(string[] args)
-        {
-            // 预留 Benchmark 入口，后续可替换为 BenchmarkSwitcher/Runner。
-            Console.WriteLine("AxolotlMCP.Benchmarks bootstrap");
-        }
+        // 使用 BenchmarkSwitcher 允许用户选择运行特定的基准测试类
+        var switcher = BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly);
+        switcher.Run(args);
     }
 }
 

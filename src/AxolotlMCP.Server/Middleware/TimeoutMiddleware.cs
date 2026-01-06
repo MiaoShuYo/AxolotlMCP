@@ -1,3 +1,4 @@
+using AxolotlMCP.Core.Protocol;
 using AxolotlMCP.Core.Protocol.Message;
 using Microsoft.Extensions.Options;
 
@@ -44,7 +45,7 @@ public sealed class TimeoutMiddleware : IRequestMiddleware
             return new ResponseMessage
             {
                 Id = request.Id,
-                Error = new McpError { Code = 408, Message = "Request Timeout" }
+                Error = new McpError { Code = ErrorCodes.RequestTimeout, Message = "Request Timeout" }
             };
         }
     }

@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
+using AxolotlMCP.Core.Protocol;
 using AxolotlMCP.Core.Protocol.Message;
 using Microsoft.Extensions.Options;
 
@@ -76,7 +77,7 @@ public sealed class ToolSandboxMiddleware : IRequestMiddleware
             }
             catch (OperationCanceledException) when (cts.IsCancellationRequested)
             {
-                return new ResponseMessage { Id = request.Id, Error = new McpError { Code = 408, Message = "Tool Timeout" } };
+                return new ResponseMessage { Id = request.Id, Error = new McpError { Code = ErrorCodes.RequestTimeout, Message = "Tool Timeout" } };
             }
         }
         finally

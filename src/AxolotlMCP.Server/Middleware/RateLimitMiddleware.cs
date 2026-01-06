@@ -1,5 +1,6 @@
 using System.Threading.RateLimiting;
 using AxolotlMCP.Core.Observability;
+using AxolotlMCP.Core.Protocol;
 using AxolotlMCP.Core.Protocol.Message;
 
 namespace AxolotlMCP.Server.Middleware;
@@ -43,7 +44,7 @@ public sealed class RateLimitMiddleware : IRequestMiddleware, IDisposable
             return new ResponseMessage
             {
                 Id = request.Id,
-                Error = new Core.Protocol.Message.McpError { Code = 429, Message = "Too Many Requests" }
+                Error = new Core.Protocol.Message.McpError { Code = ErrorCodes.TooManyRequests, Message = "Too Many Requests" }
             };
         }
 

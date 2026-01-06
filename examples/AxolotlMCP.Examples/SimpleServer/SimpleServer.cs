@@ -44,7 +44,7 @@ public class SimpleServer : IMcpHandler
                 Id = request.Id,
                 Error = new McpError
                 {
-                    Code = -32601,
+                    Code = ErrorCodes.MethodNotFound,
                     Message = "方法未找到"
                 }
             }
@@ -159,7 +159,7 @@ public class SimpleServer : IMcpHandler
             Id = request.Id,
             Error = new McpError
             {
-                Code = -32602,
+                Code = ErrorCodes.InvalidParams,
                 Message = "无效参数"
             }
         });

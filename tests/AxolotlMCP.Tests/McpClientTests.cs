@@ -19,31 +19,34 @@ public class McpClientTests
     [Fact]
     public async Task SendRequest_AssignsId_And_ReceivesResponse()
     {
-        var transport = new InMemoryTransport();
+        var transport = new TestCaptureTransport();
         await transport.StartAsync();
-        var client = new McpClient(transport, NullLogger<McpClient>.Instance, new ClientOptions { MaxConcurrentRequests = 2, DefaultRequestTimeoutSeconds = 1 });
+        var client = new McpClient(transport, NullLogger<McpClient>.Instance, new ClientOptions { MaxConcurrentRequests = 2, DefaultRequestTimeoutSeconds = 5 });
         await client.ConnectAsync();
 
         var req = new RequestMessage { Method = "ping" };
 
         var task = client.SendRequestAsync(req);
 
-        // Craft a response by reading pending id from queued send: since InMemoryTransport loops back,
-        // we need to simulate server echoing back id. Read one frame and turn it into response.
-        await foreach (var sent in transport.ReadAsync())
-        {
-            var doc = JsonDocument.Parse(sent);
-            var root = doc.RootElement;
-            var id = root.GetProperty("id").GetString();
-            var resp = new ResponseMessage { Id = id!, Result = JsonSerializer.SerializeToElement(new { ok = true }) };
-            var respJson = JsonSerializer.Serialize(resp, JsonDefaults.Options);
-            await transport.SendAsync(respJson);
-            break;
-        }
+        // 等待客户端发送请求
+        await Task.Delay(100);
+
+        // 从发送队列获取请求并提取ID
+        Assert.True(transport.Sent.TryDequeue(out var sentJson));
+        var doc = JsonDocument.Parse(sentJson);
+        var root = doc.RootElement;
+        var id = root.GetProperty("id").GetString();
+
+        // 模拟服务器响应
+        var resp = new ResponseMessage { Id = id!, Result = JsonSerializer.SerializeToElement(new { ok = true }) };
+        var respJson = JsonSerializer.Serialize(resp, JsonDefaults.Options);
+        transport.EnqueueInbound(respJson);
 
         var response = await task;
         Assert.True(response.Result.HasValue);
         await client.DisconnectAsync();
+        await transport.StopAsync();
+        await transport.DisposeAsync();
     }
 }
 

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using AxolotlMCP.Core.Observability;
+using AxolotlMCP.Core.Protocol;
 using AxolotlMCP.Core.Protocol.Message;
 using Microsoft.Extensions.Options;
 
@@ -56,7 +57,7 @@ public sealed class ApiKeyAuthMiddleware : IRequestMiddleware
         return Task.FromResult(new ResponseMessage
         {
             Id = request.Id,
-            Error = new McpError { Code = 401, Message = "Unauthorized" }
+            Error = new McpError { Code = ErrorCodes.Unauthorized, Message = "Unauthorized" }
         });
     }
 }
